@@ -1,0 +1,9 @@
+[project]
+name = "test-local-llm"
+version = "0.1.0"
+description = "Ollama parallel testing tool for local LLM performance evaluation"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aiohttp>=3.8.0",
+]
