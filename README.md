@@ -76,7 +76,27 @@ python test_ollama_parallel.py \
 - `--concurrency`: Number of concurrent requests (default: 5)
 - `--prompt`: Prompt to send to the model (default: "What is the capital of France?")
 - `--max-tokens`: Maximum tokens to generate (default: 100)
+- `--timeout`: Request timeout in seconds (default: 60)
 - `--save-results`: Save results to JSON file (optional)
+
+## Avoiding Timeouts
+
+If you experience request timeouts, especially when generating many tokens or using slower models:
+
+1. **Increase timeout**: Use `--timeout` to set a longer timeout (in seconds)
+   ```bash
+   python test_ollama_parallel.py --timeout 600 --max-tokens 500
+   ```
+
+2. **Reduce concurrency**: Lower concurrent requests to reduce server load
+   ```bash
+   python test_ollama_parallel.py --concurrency 2 --max-tokens 500
+   ```
+
+3. **Reduce token count**: Use fewer `--max-tokens` for faster responses
+   ```bash
+   python test_ollama_parallel.py --max-tokens 100
+   ```
 
 ## Example Output
 

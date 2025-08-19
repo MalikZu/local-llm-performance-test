@@ -38,8 +38,9 @@ class RequestResult:
 class OllamaParallelTester:
     """Test Ollama server with parallel requests"""
     
-    def __init__(self, base_url: str = "http://localhost:11434"):
+    def __init__(self, base_url: str = "http://localhost:11434", timeout: int = 60):
         self.base_url = base_url
+        self.timeout = timeout
         self.session = None
     
     async def __aenter__(self):
@@ -71,7 +72,7 @@ class OllamaParallelTester:
             async with self.session.post(
                 f"{self.base_url}/api/generate",
                 json=payload,
-                timeout=aiohttp.ClientTimeout(total=60)
+                timeout=aiohttp.ClientTimeout(total=self.timeout)
             ) as response:
                 response_time = time.time() - start_time
                 
@@ -248,6 +249,7 @@ async def main():
     parser.add_argument("--concurrency", type=int, default=5, help="Number of concurrent requests")
     parser.add_argument("--prompt", default="What is the capital of France?", help="Prompt to send")
     parser.add_argument("--max-tokens", type=int, default=100, help="Maximum tokens to generate")
+    parser.add_argument("--timeout", type=int, default=60, help="Request timeout in seconds (default: 60)")
     parser.add_argument("--save-results", help="Save results to JSON file")
     
     args = parser.parse_args()
@@ -259,7 +261,7 @@ async def main():
     
     start_time = time.time()
     
-    async with OllamaParallelTester(args.url) as tester:
+    async with OllamaParallelTester(args.url, args.timeout) as tester:
         results = await tester.run_parallel_test(
             model=args.model,
             prompt=args.prompt,
