@@ -24,7 +24,15 @@ class RequestResult:
     response_time: float
     response_text: str = ""
     error_message: str = ""
-    tokens_generated: int = 0
+    # Ollama-specific metrics
+    eval_count: int = 0  # Actual tokens generated
+    eval_duration: float = 0.0  # Time to generate tokens (nanoseconds)
+    eval_rate: float = 0.0  # Tokens per second during generation
+    prompt_eval_count: int = 0  # Tokens in prompt
+    prompt_eval_duration: float = 0.0  # Time to process prompt (nanoseconds)
+    prompt_eval_rate: float = 0.0  # Prompt processing rate
+    total_duration: float = 0.0  # Total request duration (nanoseconds)
+    load_duration: float = 0.0  # Model loading time (nanoseconds)
 
 
 class OllamaParallelTester:
@@ -71,15 +79,29 @@ class OllamaParallelTester:
                     data = await response.json()
                     response_text = data.get("response", "")
                     
-                    # Estimate tokens (rough approximation)
-                    tokens_generated = len(response_text.split())
+                    # Extract Ollama's actual metrics
+                    eval_count = data.get("eval_count", 0)
+                    eval_duration = data.get("eval_duration", 0)
+                    eval_rate = data.get("eval_rate", 0.0)
+                    prompt_eval_count = data.get("prompt_eval_count", 0)
+                    prompt_eval_duration = data.get("prompt_eval_duration", 0)
+                    prompt_eval_rate = data.get("prompt_eval_rate", 0.0)
+                    total_duration = data.get("total_duration", 0)
+                    load_duration = data.get("load_duration", 0)
                     
                     return RequestResult(
                         request_id=request_id,
                         success=True,
                         response_time=response_time,
                         response_text=response_text,
-                        tokens_generated=tokens_generated
+                        eval_count=eval_count,
+                        eval_duration=eval_duration,
+                        eval_rate=eval_rate,
+                        prompt_eval_count=prompt_eval_count,
+                        prompt_eval_duration=prompt_eval_duration,
+                        prompt_eval_rate=prompt_eval_rate,
+                        total_duration=total_duration,
+                        load_duration=load_duration
                     )
                 else:
                     error_text = await response.text()
@@ -156,7 +178,9 @@ class OllamaParallelTester:
         
         if successful_results:
             response_times = [r.response_time for r in successful_results]
-            tokens_generated = [r.tokens_generated for r in successful_results]
+            eval_counts = [r.eval_count for r in successful_results if r.eval_count > 0]
+            eval_rates = [r.eval_rate for r in successful_results if r.eval_rate > 0]
+            prompt_eval_counts = [r.prompt_eval_count for r in successful_results if r.prompt_eval_count > 0]
             
             print("\nResponse Time Statistics:")
             print(f"  Mean: {mean(response_times):.2f}s")
@@ -164,16 +188,41 @@ class OllamaParallelTester:
             print(f"  Min: {min(response_times):.2f}s")
             print(f"  Max: {max(response_times):.2f}s")
             
-            if tokens_generated:
-                print("\nToken Generation Statistics:")
-                print(f"  Mean tokens: {mean(tokens_generated):.1f}")
-                print(f"  Total tokens: {sum(tokens_generated)}")
+            if eval_counts:
+                print("\nToken Generation Statistics (from Ollama):")
+                print(f"  Mean tokens generated: {mean(eval_counts):.1f}")
+                print(f"  Total tokens generated: {sum(eval_counts)}")
                 
-                # Calculate tokens per second
+                if eval_rates:
+                    print(f"  Mean generation rate: {mean(eval_rates):.1f} tokens/sec")
+                    print(f"  Max generation rate: {max(eval_rates):.1f} tokens/sec")
+                    print(f"  Min generation rate: {min(eval_rates):.1f} tokens/sec")
+                
+                # Calculate aggregate throughput
                 total_time = sum(response_times)
-                total_tokens = sum(tokens_generated)
+                total_tokens = sum(eval_counts)
                 if total_time > 0:
-                    print(f"  Tokens/second (aggregate): {total_tokens/total_time:.1f}")
+                    print(f"  Aggregate throughput: {total_tokens/total_time:.1f} tokens/sec")
+            
+            if prompt_eval_counts:
+                print("\nPrompt Processing Statistics:")
+                print(f"  Mean prompt tokens: {mean(prompt_eval_counts):.1f}")
+                prompt_eval_rates = [r.prompt_eval_rate for r in successful_results if r.prompt_eval_rate > 0]
+                if prompt_eval_rates:
+                    print(f"  Mean prompt processing rate: {mean(prompt_eval_rates):.1f} tokens/sec")
+            
+            # Ollama timing breakdown
+            total_durations = [r.total_duration for r in successful_results if r.total_duration > 0]
+            eval_durations = [r.eval_duration for r in successful_results if r.eval_duration > 0]
+            load_durations = [r.load_duration for r in successful_results if r.load_duration > 0]
+            
+            if total_durations:
+                print("\nOllama Timing Breakdown (from server):")
+                print(f"  Mean total duration: {mean(total_durations)/1e9:.2f}s")
+                if eval_durations:
+                    print(f"  Mean generation time: {mean(eval_durations)/1e9:.2f}s")
+                if load_durations:
+                    print(f"  Mean model load time: {mean(load_durations)/1e9:.2f}s")
         
         if failed_results:
             print("\nFailure Analysis:")
@@ -243,7 +292,16 @@ async def main():
                         "response_time": r.response_time,
                         "response_text": r.response_text,
                         "error_message": r.error_message,
-                        "tokens_generated": r.tokens_generated
+                        "ollama_metrics": {
+                            "eval_count": r.eval_count,
+                            "eval_duration": r.eval_duration,
+                            "eval_rate": r.eval_rate,
+                            "prompt_eval_count": r.prompt_eval_count,
+                            "prompt_eval_duration": r.prompt_eval_duration,
+                            "prompt_eval_rate": r.prompt_eval_rate,
+                            "total_duration": r.total_duration,
+                            "load_duration": r.load_duration
+                        }
                     }
                     for r in results
                 ]

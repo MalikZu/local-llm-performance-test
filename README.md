@@ -6,7 +6,7 @@ This Python script allows you to test local LLM performance by sending multiple 
 
 - **Parallel Requests**: Send multiple concurrent requests to test throughput
 - **Configurable Parameters**: Customize model, prompt, concurrency, and request count
-- **Performance Metrics**: Get detailed statistics on response times and token generation
+- **Performance Metrics**: Get detailed statistics on response times and actual token metrics from Ollama
 - **Error Handling**: Robust error handling with detailed failure analysis
 - **Results Export**: Save test results to JSON for further analysis
 
@@ -102,10 +102,22 @@ Response Time Statistics:
   Min: 1.12s
   Max: 1.89s
 
-Token Generation Statistics:
-  Mean tokens: 25.3
-  Total tokens: 253
-  Tokens/second (aggregate): 17.4
+Token Generation Statistics (from Ollama):
+  Mean tokens generated: 25.3
+  Total tokens generated: 253
+  Mean generation rate: 18.2 tokens/sec
+  Max generation rate: 22.1 tokens/sec
+  Min generation rate: 14.8 tokens/sec
+  Aggregate throughput: 17.4 tokens/sec
+
+Prompt Processing Statistics:
+  Mean prompt tokens: 8.0
+  Mean prompt processing rate: 156.3 tokens/sec
+
+Ollama Timing Breakdown (from server):
+  Mean total duration: 1.38s
+  Mean generation time: 1.25s
+  Mean model load time: 0.02s
 
 Sample Responses:
   Request 0: The capital of France is Paris. Paris is located in the north-central part of France...
